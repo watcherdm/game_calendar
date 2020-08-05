@@ -1,0 +1,13 @@
+{
+  "name": "game_calendar",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:webspinner/game_calendar.git",
+  "author": "Gabriel Hernandez <webspinner.gabriel@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "express": "^4.17.1",
+    "mysql": "^2.18.1"
+  }
+}
