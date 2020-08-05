@@ -7,15 +7,15 @@ const connection = mysql.createConnection({
   database: 'watcher_game_calendar'
 })
 
-function test_connection(query, cb) {
+function make_query(query, cb) {
     connection.connect()
 
     connection.query(query, (err, rows, fields) => {
       if (err) throw err
+      connection.end()
       cb(rows, fields)
     })
 
-    connection.end()    
 }
 
-module.exports = test_connection
+module.exports = make_query
