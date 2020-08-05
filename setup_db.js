@@ -15,3 +15,5 @@ connection.query('show tables;', (err, rows, fields) => {
 })
 
 connection.end()
+
+module.exports = connection

@@ -1,6 +1,9 @@
 const express = require('express')
 const app = express()
 
+const setup = require('./setup_db')
+
+
 app.get('/api', (req, res) => {
   res.send('Hello World!')
 })
