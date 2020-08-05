@@ -1,17 +1,12 @@
 const express = require('express')
 const app = express()
+const fs = require('fs')
 
 const test_connection = require('./setup_db')
 
 
 app.get('/api', (req, res) => {
-  try {
-    test_connection('show tables;', (rows, fields) => {
-      res.send(`Tested connection ${rows}`)
-    })
-  } catch (e) {
-    res.send('Hello World!')
-  }
+  res.send('Hello World!')
 })
 
 app.listen(3000, () => {
