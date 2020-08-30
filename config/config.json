@@ -1,0 +1,16 @@
+{
+  "development": {
+    "username": "root",
+    "password": "test1234",
+    "database": "watcher_game_calendar",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": "test1234",
+    "database": "watcher_game_calendar_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  }
+}
