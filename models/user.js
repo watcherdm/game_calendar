@@ -12,6 +12,7 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
+
       // define association here
     }
 
@@ -20,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     }
 
     toJSON() {
-        const {id, username,email, first_name,last_name,date_of_birth, img_url} = this
+        const {id, username,email, first_name,last_name,date_of_birth, img_url, Roles} = this
         return {
             id,
             username,
@@ -28,7 +29,8 @@ module.exports = (sequelize, DataTypes) => {
             first_name,
             last_name,
             date_of_birth,
-            img_url
+            img_url,
+            roles: Roles.map(r => r.toJSON())
         }
     }
   };

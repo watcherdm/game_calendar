@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
     }
+    toJSON() {
+        const {name, img_url} = this;
+        return {name, img_url}
+    }
   };
   Role.init({
     name: DataTypes.STRING,

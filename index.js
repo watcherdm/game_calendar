@@ -2,8 +2,11 @@ const express = require('express')
 const app = express()
 const fs = require('fs')
 const crypto = require('crypto')
+const bodyParser = require('body-parser')
 const {v4: genuuid} = require('uuid')
+const flash = require('connect-flash')
 const session = require('express-session')
+const SessionStore = require('express-session-sequelize')(session.Store);
 const passport = require('passport')
 const LocalStrategy = require('passport-local').Strategy
 const nodemailer = require('nodemailer')
@@ -23,6 +26,10 @@ sqliz
     console.error('Unable to connect to the database:', err);
   });
 
+const sequelizeSessionStore = new SessionStore({
+    db: sqliz,
+});
+
 const Character = require('./models/character')(sqliz, DataTypes)
 const Game = require('./models/game')(sqliz, DataTypes)
 const ResetToken = require('./models/resettoken')(sqliz, DataTypes)
@@ -31,6 +38,9 @@ const Rsvp = require('./models/rsvp')(sqliz, DataTypes)
 const RsvpStatus = require('./models/rsvpstatus')(sqliz, DataTypes)
 const User = require('./models/user')(sqliz, DataTypes)
 const UserRole = require('./models/userrole')(sqliz, DataTypes)
+
+User.belongsToMany(Role, {through: 'UserRole'});
+Role.belongsToMany(User, {through: 'UserRole'});
 
 const transportConfig = {
   host: process.env.EMAIL_HOST,
@@ -46,18 +56,21 @@ const transport = nodemailer.createTransport(transportConfig)
 
 const make_query = require('./setup_db')
 
+app.use(bodyParser.urlencoded({extended: true}))
 app.use(express.json())
 
 app.use(session({
-  genid: (req) => {return genuuid()},
+  store: sequelizeSessionStore,
   secret: 'wicked taco',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: true }
+  cookie: {}
 }))
 
 app.use(passport.initialize())
 app.use(passport.session())
+
+app.use(flash())
 
 passport.serializeUser((user, done) => {
     console.log('serializing passport user')
@@ -65,22 +78,19 @@ passport.serializeUser((user, done) => {
 })
 
 passport.deserializeUser((id, done) => {
-    console.log('trying to get passport user')
-    User.findById(id, (err, user) => {
-        done(err, user)
+    User.findOne({where: {id: id}}).then((user) => {
+        done(null, user)
     })
 })
 
 passport.use(new LocalStrategy({
+    passReqToCallback: true,
     usernameField: 'email',
     passwordField: 'password'
-}, (username, password, done) => {
-    console.log(`passport engaged ${username}, ${password}`)
-    User.findOne({where: {email: req.body.email}}).then((err, user) => {
-        if (err) { 
-            console.error(err)
-            return done(err) 
-        }
+}, (req, username, password, done) => {
+    console.warn('trying to login user')
+    User.findOne({where: {email: username}}).then((user) => {
+        console.warn(user)
         if (!user) {
             console.error(`No user found for email ${username}`)
             return done(null, false, {message: 'No such user'})
@@ -94,6 +104,7 @@ passport.use(new LocalStrategy({
             console.error(`Invalid password for email ${username}`)
             return done(null, false, {message: "Invalid Credentials"})
         }
+        console.log('user logged in')
         return done(null, user)
     })
 }))
@@ -119,7 +130,11 @@ app.get('/api', async (req, res) => {
 })
 
 app.get('/api/session', (req, res) => {
-  res.json({session: req.session})
+  if (req.isAuthenticated()) {
+    res.json({session: req.session})
+  } else {
+    res.end('Unauthorized', 401)
+  }
 })
 
 app.post('/api/forgot-password', async (req, res, next) => {
@@ -254,25 +269,52 @@ app.post('/api/reset-password', async (req, res, next) => {
 })
 
 app.post('/api/login', (req, res, next) => {
-    console.log('got login request')
     return passport.authenticate('local', {
         successRedirect: '/welcome',
-        failureRedirect: '/login',
-        failureFlash: true
-    })
+        failureRedirect: '/login'
+    })(req, res, next);
 })
 
 app.post('/api/roles', (req, res) => {
 })
 
 app.get('/api/roles', (req, res) => {
+  Role.findAll().then((roles) => {
+    res.json(roles)
+  })
 })
 
-app.post('/api/users', (req, res) => {
-
+app.get('/api/user/:userId', async (req, res) => {
+  const {userId} = req.params
+  if (req.isAuthenticated()) {
+    user = await User.findByPk(userId, {include: Role})
+    console.log(user)
+    if ( userId == req.session.passport.user) {
+      return res.json(user)
+    } else {
+      if (user.roles.contains('admin')) {
+        res.json(user)
+      } else {
+        res.end('Unauthorized', 401)
+      }
+    }
+  } else {
+    res.end('Unauthorized', 401)    
+  }
 })
 
-app.get('/api/users', (req, res) => {
+app.get('/api/users', async (req, res) => {
+  if (req.isAuthenticated()) {
+    user = await User.findByPk(req.session.passport.user)
+    if (user.roles.contains('admin')) {
+      users = await User.findAll()
+      res.json(users)
+    } else {
+      res.json([user])
+    }
+  } else {
+    res.end('Unauthorized', 401)
+  }
 })
 
 app.listen(3001, () => {
